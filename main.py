@@ -9,6 +9,8 @@ Created on Fri Dec  1 12:38:52 2023
 import pandas as pd
 import numpy as np
 
+import stats
+
 
 def clean_data(data):
     """
@@ -62,6 +64,7 @@ def get_dataframes(filename):
     # Set the region and series name as index, leaving years as the columns
     df = df.set_index(
         ["Region", "Series Name"]).sort_index()
+    df = df.astype("float")
 
     df_transposed = df.transpose().sort_index()
 
@@ -69,3 +72,7 @@ def get_dataframes(filename):
 
 
 df, df_transposed = get_dataframes("worldbank_data.csv")
+
+# Get some summary statistics for the variables across different regions
+df_transposed.describe()
+df_transposed.agg([stats.skew, stats.kurtosis])
