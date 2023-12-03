@@ -68,13 +68,17 @@ def get_dataframes(filename):
     # Set the region and series name as index, leaving years as the columns
     df = df.set_index(
         ["Region", "Series Name"]).sort_index()
+
     df.rename(index={"Self-employed, total (% of total employment) (modeled " +
                      "ILO estimate)": "Self-employed (% of total employment)"},
-                     inplace=True)
+              inplace=True)
+
+    df.rename(lambda x: x.replace("current", ""), axis='index', inplace=True)
 
     df = df.astype("float64")
 
     df_transposed = df.transpose().sort_index()
+    df_transposed.index = pd.to_datetime(df_transposed.index, format="%Y")
 
     return df, df_transposed
 
@@ -95,7 +99,7 @@ def plot_heatmap(corr, region_name):
     None.
 
     """
-    
+
     fig, ax = plt.subplots(figsize=(10, 10))
     im = ax.imshow(corr, interpolation="nearest")
     fig.colorbar(im, orientation='vertical', fraction=0.05)
@@ -105,10 +109,10 @@ def plot_heatmap(corr, region_name):
     # Show all ticks and label them with the column name
     ax.set_xticks(np.arange(columns_length), labels=corr.columns, fontsize=15)
     ax.set_yticks(np.arange(columns_length), labels=corr.columns, fontsize=15)
-    
+
     # Rotate the tick labels
     plt.setp(ax.get_xticklabels(), rotation=-90)
-    
+
     # The threshold for which to change the text color to ensure visibility
     threshold = im.norm(corr.to_numpy().max())/2
 
@@ -125,17 +129,78 @@ def plot_heatmap(corr, region_name):
     plt.savefig(f"{region_name}_heatmap.png", bbox_inches='tight')
 
     plt.show()
-    
+
     return
 
 
+def plot_line_graphs(df, title, xlabel):
+    """
+    Plot
+
+    Parameters
+    ----------
+    df : DataFrame
+        The dataframe to plot.
+    title : str
+        The title of the plot.
+    xlabel : str
+        The label of the x-axis.
+
+    Returns
+    -------
+    None.
+
+    """
+
+    columns = df.columns.levels[1][1:]
+    fig, axes = plt.subplots(3, 3, figsize=(30, 25), layout='constrained')
+
+    fig.suptitle(title, fontsize=30, fontweight="bold", y=1.08)
+
+    i = 0
+    j = 0
+
+    for series_name in columns:
+        df_to_plot = df.xs(series_name, level=1, axis=1)
+        ax = axes[i, j]
+
+        df_to_plot.plot(ax=ax, legend=False, grid=True, xlim=("2002", "2020"),
+                        linewidth=5)
+
+        ax.set_ylabel(series_name, fontsize=20)
+
+        if j < 2:
+            j += 1
+        else:
+            i += 1
+            j = 0
+
+    fig.supxlabel(xlabel, fontsize=20)
+
+    handles, labels = fig.axes[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc='upper center', ncols=8, fontsize=18,
+               bbox_to_anchor=[0.5, 1.04], borderpad=1)
+
+    plt.savefig("line_plot.png", bbox_inches='tight')
+
+    plt.show()
+
+    return
+
+
+# Get the pandas dataframe from the loaded file
 df, df_transposed = get_dataframes("worldbank_data.csv")
 
 # Get some summary statistics for the variables across different regions
 df_transposed.describe()
 df_transposed.agg([stats.skew, stats.kurtosis])
 
+
 # Plot heatmap and examine the correlation between the indicators
 corr = df_transposed.corr().round(2)
 for region in corr.columns.levels[0]:
     plot_heatmap(corr.loc[region, region], region)
+
+# Plot line graph showing the trend of indicators across different regions
+line_plot_title = "Trend of different indicators in the different regions"
+plot_line_graphs(df_transposed, line_plot_title, "Years")
