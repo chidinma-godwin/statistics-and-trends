@@ -16,8 +16,8 @@ import stats
 
 def clean_data(data):
     """
-    Removes unwanted columns, renames some columns and represent missing 
-    values as nans
+    Removes unwanted columns, renames some columns, represent missing 
+    values as nans, and set numeric values to float type
 
     Parameters
     ----------
@@ -33,11 +33,30 @@ def clean_data(data):
 
     cleaned_data = data.drop(columns=["Series Code", "Country Code"])
 
+    # Change column names like "2002 [YR2002]" to "2002" and "Country Name"
+    # to "Region"
     columns = ["Region" if col_name == "Country Name" else col_name
                .split(" [")[0] for col_name in list(cleaned_data.columns)]
-
     cleaned_data.columns = columns
+
     cleaned_data.replace('..', np.nan, inplace=True)
+
+    # Set the region and series name as index, leaving years as the columns
+    cleaned_data = cleaned_data.set_index(
+        ["Region", "Series Name"]).sort_index()
+
+    # Change to a shorter name
+    cleaned_data.rename(index={
+                        "Self-employed, total (% of total employment)"
+                        + " (modeled ILO estimate)": "Self-employed"},
+                        inplace=True)
+
+    # Rename index like "Sample (current US$)" to "Sample (US$)"
+    cleaned_data.rename(lambda x: x.replace(
+        "current", ""), axis='index', inplace=True)
+
+    # Ensure that the values are currently represented as floats
+    cleaned_data = cleaned_data.astype("float64")
 
     return cleaned_data
 
@@ -64,18 +83,6 @@ def get_dataframes(filename):
     df = pd.read_csv(filename)
 
     df = clean_data(df)
-
-    # Set the region and series name as index, leaving years as the columns
-    df = df.set_index(
-        ["Region", "Series Name"]).sort_index()
-
-    df.rename(index={"Self-employed, total (% of total employment) (modeled " +
-                     "ILO estimate)": "Self-employed (% of total employment)"},
-              inplace=True)
-
-    df.rename(lambda x: x.replace("current", ""), axis='index', inplace=True)
-
-    df = df.astype("float64")
 
     df_transposed = df.transpose().sort_index()
     df_transposed.index = pd.to_datetime(df_transposed.index, format="%Y")
@@ -165,7 +172,7 @@ def plot_line_graphs(df, title, xlabel):
         ax = axes[i, j]
 
         df_to_plot.plot(ax=ax, legend=False, grid=True, xlim=("2002", "2020"),
-                        linewidth=5)
+                        linewidth=5, x_compat=True)
 
         ax.set_ylabel(series_name, fontsize=20)
 
