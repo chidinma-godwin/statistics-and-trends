@@ -27,7 +27,7 @@ def clean_data(data):
     Returns
     -------
     cleaned_data : DataFrame
-        The data with renamed columns and nan as missing values.
+        The data with renamed columns, correct index, and values set as float.
 
     """
 
@@ -53,7 +53,7 @@ def clean_data(data):
 
     # Rename index like "Sample (current US$)" to "Sample (US$)"
     cleaned_data.rename(lambda x: x.replace(
-        "current", ""), axis='index', inplace=True)
+        "current ", ""), axis='index', inplace=True)
 
     # Ensure that the values are currently represented as floats
     cleaned_data = cleaned_data.astype("float64")
@@ -90,6 +90,44 @@ def get_dataframes(filename):
     return df, df_transposed
 
 
+def plot_boxplot(df, title, ylabel):
+    """
+    Make a boxplot from a DataFrame
+
+    Parameters
+    ----------
+    df : DataFrame
+        The dataframe to plot.
+    title : str
+        The title of the box plot
+    ylabel: str
+        The label of the y-axis
+
+    Returns
+    -------
+    None.
+
+    """
+    fig, ax = plt.subplots()
+
+    # Sort the box plots by their median values
+    index = df.median().sort_values(ascending=False).index
+    df[index].boxplot()
+
+    # Set the plot title and shift it away from the plot with the y option
+    ax.set_title(title, fontweight="bold", y=1.03)
+    ax.set_ylabel(ylabel)
+
+    plt.setp(ax.get_xticklabels(), rotation=45,
+             ha="right", rotation_mode="anchor")
+
+    plt.savefig("box_plot.png", bbox_inches='tight')
+
+    plt.show()
+
+    return
+
+
 def plot_heatmap(corr, region_name):
     """
     Plot heatmap to show the correlation between the indicators
@@ -97,9 +135,10 @@ def plot_heatmap(corr, region_name):
     Parameters
     ----------
     corr : DataFrame
-        A dataframe containg the correlation coeffiecients of the inindicators.
+        A dataframe containg the correlation coeffiecients of the inindicators
     region_name : str
         The name of the plotted region. It will be used to name the saved plot
+        and for the plot title
 
     Returns
     -------
@@ -109,16 +148,23 @@ def plot_heatmap(corr, region_name):
 
     fig, ax = plt.subplots(figsize=(10, 10))
     im = ax.imshow(corr, interpolation="nearest")
-    fig.colorbar(im, orientation='vertical', fraction=0.05)
+
+    # Add a colorbar to the plot
+    fig.colorbar(im, orientation='vertical', fraction=0.045)
 
     columns_length = len(corr.columns)
+
+    # Set the plot title
+    ax.set_title(
+        f"Correlation of Indicators for {region_name}",
+        fontweight="bold", fontsize=20, y=1.03)
 
     # Show all ticks and label them with the column name
     ax.set_xticks(np.arange(columns_length), labels=corr.columns, fontsize=15)
     ax.set_yticks(np.arange(columns_length), labels=corr.columns, fontsize=15)
 
     # Rotate the tick labels
-    plt.setp(ax.get_xticklabels(), rotation=-90)
+    plt.setp(ax.get_xticklabels(), rotation=-30, ha="left")
 
     # The threshold for which to change the text color to ensure visibility
     threshold = im.norm(corr.to_numpy().max())/2
@@ -159,23 +205,26 @@ def plot_line_graphs(df, title, xlabel):
 
     """
 
-    columns = df.columns.levels[1][1:]
-    fig, axes = plt.subplots(3, 3, figsize=(30, 25), layout='constrained')
+    fig, axes = plt.subplots(2, 3, figsize=(20, 12), layout='constrained')
 
-    fig.suptitle(title, fontsize=30, fontweight="bold", y=1.08)
+    fig.suptitle(title, fontsize=30, fontweight="bold", y=1.10)
 
     i = 0
     j = 0
 
+    # Get the unique series names
+    columns = list(set(df.columns.get_level_values(1)))
+
     for series_name in columns:
-        df_to_plot = df.xs(series_name, level=1, axis=1)
+        df_to_plot = df.xs(series_name, level="Series Name", axis=1)
         ax = axes[i, j]
 
         df_to_plot.plot(ax=ax, legend=False, grid=True, xlim=("2002", "2020"),
-                        linewidth=5, x_compat=True)
+                        linewidth=4, x_compat=True)
 
         ax.set_ylabel(series_name, fontsize=20)
 
+        # Set the axes to make the next plot on
         if j < 2:
             j += 1
         else:
@@ -184,9 +233,10 @@ def plot_line_graphs(df, title, xlabel):
 
     fig.supxlabel(xlabel, fontsize=20)
 
+    # Display one legend for all the subplots
     handles, labels = fig.axes[0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc='upper center', ncols=8, fontsize=18,
-               bbox_to_anchor=[0.5, 1.04], borderpad=1)
+    fig.legend(handles, labels, loc='upper center', ncols=4, fontsize=18,
+               bbox_to_anchor=[0.5, 1.04])
 
     plt.savefig("line_plot.png", bbox_inches='tight')
 
@@ -195,13 +245,12 @@ def plot_line_graphs(df, title, xlabel):
     return
 
 
-# Get the pandas dataframe from the loaded file
+# Get the pandas dataframe from the file
 df, df_transposed = get_dataframes("worldbank_data.csv")
 
-# Get some summary statistics for the variables across different regions
-df_transposed.describe()
-df_transposed.agg([stats.skew, stats.kurtosis])
-
+# Get some summary statistics for the indicators across different regions
+df_description = df_transposed.describe().round(2)
+df_skew_kurtosis = df_transposed.agg([stats.skew, stats.kurtosis]).round(2)
 
 # Plot heatmap and examine the correlation between the indicators
 corr = df_transposed.corr().round(2)
@@ -210,4 +259,18 @@ for region in corr.columns.levels[0]:
 
 # Plot line graph showing the trend of indicators across different regions
 line_plot_title = "Trend of different indicators in the different regions"
-plot_line_graphs(df_transposed, line_plot_title, "Years")
+idx = pd.IndexSlice
+df_for_lineplot = df_transposed.loc[:, idx[:, [
+    'Death rate, crude (per 1,000 people)',
+    'Exports of goods and services (US$)',
+    'GDP per capita (US$)',
+    'Gross national expenditure (US$)',
+    'Imports of goods and services (US$)',
+    'Total natural resources rents (% of GDP)']]]
+plot_line_graphs(df_for_lineplot, line_plot_title, "Years")
+
+# Make boxplot of inflation across different regions for the observed years
+plot_boxplot(df_transposed.xs(
+    "Inflation, GDP deflator (annual %)", axis=1, level=1),
+    "Inflation Percentage for Each Region",
+    "Inflation, (annual %)")
