@@ -135,7 +135,7 @@ def plot_boxplot(df, title, ylabel):
               loc="lower center", ncol=1, fontsize=12)
     ax.legend_.set_bbox_to_anchor([0.8, 0.75])
 
-    plt.savefig("box_plot.png", bbox_inches='tight')
+    plt.savefig("plots/box_plot.png", bbox_inches='tight')
 
     plt.show()
 
@@ -193,7 +193,7 @@ def plot_heatmap(corr, region_name):
             ax.text(j, i, corr.to_numpy()[i, j], ha="center",
                     va="center", color=color)
 
-    plt.savefig(f"{region_name} heatmap.png", bbox_inches='tight')
+    plt.savefig(f"plots/{region_name} heatmap.png", bbox_inches='tight')
 
     plt.show()
 
@@ -252,7 +252,7 @@ def plot_line_graphs(df, title, xlabel):
     fig.legend(handles, labels, loc='upper center', ncols=4, fontsize=18,
                bbox_to_anchor=[0.5, 1.04])
 
-    plt.savefig("line_plot.png", bbox_inches='tight')
+    plt.savefig("plots/line_plot.png", bbox_inches='tight')
 
     plt.show()
 
