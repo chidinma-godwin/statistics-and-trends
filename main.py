@@ -10,6 +10,7 @@ import pandas as pd
 import numpy as np
 
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 
 import stats
 
@@ -112,7 +113,11 @@ def plot_boxplot(df, title, ylabel):
 
     # Sort the box plots by their median values
     index = df.median().sort_values(ascending=False).index
-    df[index].boxplot()
+
+    # Add lines showing the means in each box
+    df[index].boxplot(ax=ax, showmeans=True, meanline=True, medianprops=dict(
+        color="deeppink", linewidth=1.5), meanprops=dict(color="green",
+                                                         linewidth=1.5))
 
     # Set the plot title and shift it away from the plot with the y option
     ax.set_title(title, fontweight="bold", y=1.03)
@@ -120,6 +125,15 @@ def plot_boxplot(df, title, ylabel):
 
     plt.setp(ax.get_xticklabels(), rotation=45,
              ha="right", rotation_mode="anchor")
+
+    # Show a legend for the mean and median lines
+    median_line = Line2D([], [], color="deeppink", label="Median",
+                         markersize=18)
+    mean_line = Line2D([], [], color="green", label="Mean",
+                       markersize=18, linestyle="--")
+    ax.legend(handles=[median_line, mean_line],
+              loc="lower center", ncol=1, fontsize=12)
+    ax.legend_.set_bbox_to_anchor([0.8, 0.75])
 
     plt.savefig("box_plot.png", bbox_inches='tight')
 
@@ -179,7 +193,7 @@ def plot_heatmap(corr, region_name):
             ax.text(j, i, corr.to_numpy()[i, j], ha="center",
                     va="center", color=color)
 
-    plt.savefig(f"{region_name}_heatmap.png", bbox_inches='tight')
+    plt.savefig(f"{region_name} heatmap.png", bbox_inches='tight')
 
     plt.show()
 
@@ -219,7 +233,7 @@ def plot_line_graphs(df, title, xlabel):
         df_to_plot = df.xs(series_name, level="Series Name", axis=1)
         ax = axes[i, j]
 
-        df_to_plot.plot(ax=ax, legend=False, grid=True, xlim=("2002", "2020"),
+        df_to_plot.plot(ax=ax, legend=False, grid=True, xlim=("2001", "2020"),
                         linewidth=4, x_compat=True)
 
         ax.set_ylabel(series_name, fontsize=20)
@@ -271,6 +285,6 @@ plot_line_graphs(df_for_lineplot, line_plot_title, "Years")
 
 # Make boxplot of inflation across different regions for the observed years
 plot_boxplot(df_transposed.xs(
-    "Inflation, GDP deflator (annual %)", axis=1, level=1),
+    "Inflation, consumer prices (annual %)", axis=1, level=1),
     "Inflation Percentage for Each Region",
-    "Inflation, (annual %)")
+    "Inflation, consumer prices (annual %)")
