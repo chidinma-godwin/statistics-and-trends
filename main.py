@@ -91,6 +91,75 @@ def get_dataframes(filename):
     return df, df_transposed
 
 
+def extract_statistics(description_df, skew_kurtosis_df):
+    """
+    Shows the summary statistics of some indicators for all the regions
+    in a styled pandas DataFrame
+
+    Parameters
+    ----------
+    description_df : DataFrame
+        The dataframe containing the result of calling the describe method
+        on a dataframe i.e the dataframe showing the mean, min, max e.tc.
+    skew_kurtosis_df : DataFrame
+        The dataframe containing the skewness and kurtosis of the data.
+
+    Returns
+    -------
+    None.
+
+    """
+    # Define the indicators whose summary statistics would be in the table
+    columns_to_show = ["GDP per capita (US$)",
+                       "Gross national expenditure (US$)",
+                       "Inflation, consumer prices (annual %)"]
+
+    # Select the statistics of only the required indicators
+    idx = pd.IndexSlice
+    selected_desc = description_df.loc[["mean"], idx[:, columns_to_show]]
+    selected_skew_kurt = df_skew_kurtosis.loc[:, idx[:, columns_to_show]]
+
+    combined_stat = pd.concat([selected_desc, selected_skew_kurt])
+
+    # Reshape the combined statistics to the desired shape
+    summary_stats_df = combined_stat.T.unstack().reorder_levels(
+        [1, 0], axis=1).sort_index(level=0, axis=1, sort_remaining=False)
+
+    # Remove the index and columns names. I'm passing a list containing two
+    # null items to rename_axis since the column has two levels
+    summary_stats_df.rename_axis([None, None], axis="columns", inplace=True)
+    summary_stats_df.index.name = None
+
+    header_styles = ["background-color: darkblue; color: white;" +
+                     "border: 1px solid white; text-align: left;"]
+    # Apply the following styles to the resulting dataframe:
+    # Format the values, add border to the table, set the table title,
+    # highlight the min and max mean of each indicators, and add background
+    # color to the colum and row headers
+    summary_stats_df = summary_stats_df.style.format("{:,.2f}") \
+        .set_properties(**{'border': '1px solid black'}) \
+        .set_caption("Summary Statistics of Indicators Over the Years") \
+        .highlight_max(color='lightgreen', subset=idx[:, idx[:, "mean"]]) \
+        .highlight_min(color='cyan', subset=idx[:, idx[:, "mean"]]) \
+        .apply_index(lambda v: header_styles * len(v)) \
+        .apply_index(lambda v: header_styles * len(v), axis="columns") \
+        .set_table_styles([
+            {'selector': 'caption',
+             'props': [
+                 ('font-size', '20px'),
+                 ('font-weight', 'bold'),
+                 ('padding-bottom', '20px'),
+             ]
+             }
+        ])
+
+    # Save the extracted statistics to an excel file
+    summary_stats_df.to_excel(
+        'plots/summary_statistics.xlsx', engine='openpyxl')
+
+    return
+
+
 def plot_boxplot(df, title, ylabel):
     """
     Make a boxplot from a DataFrame
@@ -265,6 +334,8 @@ df, df_transposed = get_dataframes("worldbank_data.csv")
 # Get some summary statistics for the indicators across different regions
 df_description = df_transposed.describe().round(2)
 df_skew_kurtosis = df_transposed.agg([stats.skew, stats.kurtosis]).round(2)
+
+extract_statistics(df_description, df_skew_kurtosis)
 
 # Plot heatmap and examine the correlation between the indicators
 corr = df_transposed.corr().round(2)
