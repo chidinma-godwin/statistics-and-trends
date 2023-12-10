@@ -88,6 +88,24 @@ def get_dataframes(filename):
     df_transposed = df.transpose().sort_index()
     df_transposed.index = pd.to_datetime(df_transposed.index, format="%Y")
 
+    # Define a new column showing the net exports (Balance of Trade)
+    imports = df_transposed.xs("Imports of goods and services (US$)",
+                               axis=1, level="Series Name")
+    exports = df_transposed.xs("Exports of goods and services (US$)",
+                               axis=1, level="Series Name")
+    net_exports = exports - imports
+    net_exports.columns = pd.MultiIndex.from_product(
+        [net_exports.columns, ['Net exports (US$)']],
+        names=["Region", "Series Name"])
+
+    # Add the new Net exports column to the transposed dataframe and
+    # remove the import and export columns
+    df_transposed = pd.concat([df_transposed, net_exports], axis=1) \
+        .sort_index(level="Region", axis=1) \
+        .drop(columns=["Imports of goods and services (US$)",
+                       "Exports of goods and services (US$)"],
+              level="Series Name")
+
     return df, df_transposed
 
 
@@ -304,7 +322,7 @@ def plot_line_graphs(df, columns, title, xlabel):
         df_to_plot = selected_df.xs(series_name, level="Series Name", axis=1)
         ax = axes[i, j]
 
-        df_to_plot.plot(ax=ax, legend=False, grid=True, xlim=("2001", "2020"),
+        df_to_plot.plot(ax=ax, legend=False, grid=True, xlim=("1996", "2020"),
                         linewidth=4, x_compat=True)
 
         ax.set_ylabel(series_name, fontsize=20)
@@ -320,8 +338,8 @@ def plot_line_graphs(df, columns, title, xlabel):
 
     # Display one legend for all the subplots
     handles, labels = fig.axes[0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc='upper center', ncols=4, fontsize=18,
-               bbox_to_anchor=[0.5, 1.04], framealpha=0.5)
+    fig.legend(handles, labels, loc='upper center', ncols=3, fontsize=18,
+               bbox_to_anchor=[0.5, 1.07])
 
     plt.savefig("plots/line_plot.png", bbox_inches='tight')
 
@@ -347,16 +365,16 @@ for region in corr.columns.levels[0]:
 # Plot line graph showing the trend of indicators across different regions
 line_plot_title = "Trend of different indicators in the different regions"
 columns_to_plot = [
-    'GDP per capita (US$)',
-    'Death rate, crude (per 1,000 people)',
-    'Total natural resources rents (% of GDP)',
-    'Gross national expenditure (US$)',
-    'Exports of goods and services (US$)',
-    'Imports of goods and services (US$)']
+    "Total natural resources rents (% of GDP)",
+    "Inflation, consumer prices (annual %)",
+    "GDP per capita (US$)",
+    "Net migration",
+    "Net exports (US$)",
+    "Gross national expenditure (US$)"]
 plot_line_graphs(df_transposed, columns_to_plot, line_plot_title, "Years")
 
 # Make boxplot of inflation across different regions for the observed years
 plot_boxplot(df_transposed.xs(
-    "Inflation, consumer prices (annual %)", axis=1, level=1),
+    "Inflation, consumer prices (annual %)", axis=1, level="Series Name"),
     "Inflation Percentage for Each Region",
     "Inflation, consumer prices (annual %)")
