@@ -269,7 +269,7 @@ def plot_heatmap(corr, region_name):
     return
 
 
-def plot_line_graphs(df, title, xlabel):
+def plot_line_graphs(df, columns, title, xlabel):
     """
     Plot
 
@@ -277,6 +277,8 @@ def plot_line_graphs(df, title, xlabel):
     ----------
     df : DataFrame
         The dataframe to plot.
+    columns: list or sequence
+        The list of columns to include in the line plot
     title : str
         The title of the plot.
     xlabel : str
@@ -295,11 +297,11 @@ def plot_line_graphs(df, title, xlabel):
     i = 0
     j = 0
 
-    # Get the unique series names
-    columns = list(set(df.columns.get_level_values(1)))
+    idx = pd.IndexSlice
+    selected_df = df.loc[:, idx[:, columns]]
 
     for series_name in columns:
-        df_to_plot = df.xs(series_name, level="Series Name", axis=1)
+        df_to_plot = selected_df.xs(series_name, level="Series Name", axis=1)
         ax = axes[i, j]
 
         df_to_plot.plot(ax=ax, legend=False, grid=True, xlim=("2001", "2020"),
@@ -319,7 +321,7 @@ def plot_line_graphs(df, title, xlabel):
     # Display one legend for all the subplots
     handles, labels = fig.axes[0].get_legend_handles_labels()
     fig.legend(handles, labels, loc='upper center', ncols=4, fontsize=18,
-               bbox_to_anchor=[0.5, 1.04])
+               bbox_to_anchor=[0.5, 1.04], framealpha=0.5)
 
     plt.savefig("plots/line_plot.png", bbox_inches='tight')
 
@@ -344,15 +346,14 @@ for region in corr.columns.levels[0]:
 
 # Plot line graph showing the trend of indicators across different regions
 line_plot_title = "Trend of different indicators in the different regions"
-idx = pd.IndexSlice
-df_for_lineplot = df_transposed.loc[:, idx[:, [
-    'Death rate, crude (per 1,000 people)',
-    'Exports of goods and services (US$)',
+columns_to_plot = [
     'GDP per capita (US$)',
+    'Death rate, crude (per 1,000 people)',
+    'Total natural resources rents (% of GDP)',
     'Gross national expenditure (US$)',
-    'Imports of goods and services (US$)',
-    'Total natural resources rents (% of GDP)']]]
-plot_line_graphs(df_for_lineplot, line_plot_title, "Years")
+    'Exports of goods and services (US$)',
+    'Imports of goods and services (US$)']
+plot_line_graphs(df_transposed, columns_to_plot, line_plot_title, "Years")
 
 # Make boxplot of inflation across different regions for the observed years
 plot_boxplot(df_transposed.xs(
