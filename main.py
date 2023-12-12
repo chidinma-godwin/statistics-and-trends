@@ -12,7 +12,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 
-import stats
+from scipy.stats.mstats import skew, kurtosis
 
 
 def clean_data(data):
@@ -130,7 +130,7 @@ def extract_statistics(description_df, skew_kurtosis_df):
     # Define the indicators whose summary statistics would be in the table
     columns_to_show = ["GDP per capita (US$)",
                        "Gross national expenditure (US$)",
-                       "Inflation, consumer prices (annual %)"]
+                       "Net migration"]
 
     # Select the statistics of only the required indicators
     idx = pd.IndexSlice
@@ -222,7 +222,7 @@ def plot_boxplot(df, title, ylabel):
               loc="lower center", ncol=1, fontsize=12)
     ax.legend_.set_bbox_to_anchor([0.8, 0.75])
 
-    plt.savefig("plots/box_plot.png", bbox_inches='tight')
+    plt.savefig("plots/box_plot.svg", bbox_inches='tight')
 
     plt.show()
 
@@ -277,8 +277,8 @@ def plot_heatmap(corr, region_name):
             color = ("white", "black")[
                 int(im.norm(corr.to_numpy()[i, j]) > threshold)]
 
-            ax.text(j, i, corr.to_numpy()[i, j], ha="center",
-                    va="center", color=color)
+            ax.text(j, i, corr.to_numpy()[i, j], ha="center", va="center",
+                    color=color, fontsize=20, fontweight="bold")
 
     plt.savefig(f"plots/{region_name} heatmap.png", bbox_inches='tight')
 
@@ -353,7 +353,8 @@ df, df_transposed = get_dataframes("worldbank_data.csv")
 
 # Get some summary statistics for the indicators across different regions
 df_description = df_transposed.describe().round(2)
-df_skew_kurtosis = df_transposed.agg([stats.skew, stats.kurtosis]).round(2)
+df_skew_kurtosis = df_transposed.agg(
+    [skew, kurtosis]).astype("float64").round(2)
 
 extract_statistics(df_description, df_skew_kurtosis)
 
@@ -363,7 +364,8 @@ for region in corr.columns.levels[0]:
     plot_heatmap(corr.loc[region, region], region)
 
 # Plot line graph showing the trend of indicators across different regions
-line_plot_title = "Trend of different indicators in the different regions"
+line_plot_title = "Trend of Indicators in the Observed Regions"
+# Provide list of indicators in the order we want for the line plots
 columns_to_plot = [
     "Total natural resources rents (% of GDP)",
     "Inflation, consumer prices (annual %)",
@@ -373,8 +375,8 @@ columns_to_plot = [
     "Gross national expenditure (US$)"]
 plot_line_graphs(df_transposed, columns_to_plot, line_plot_title, "Years")
 
-# Make boxplot of inflation across different regions for the observed years
-plot_boxplot(df_transposed.xs(
-    "Inflation, consumer prices (annual %)", axis=1, level="Series Name"),
-    "Inflation Percentage for Each Region",
-    "Inflation, consumer prices (annual %)")
+# Make boxplot of net migration across different regions
+plot_boxplot(df_transposed.xs("Inflation, consumer prices (annual %)",
+                              axis=1, level="Series Name"),
+             "Annual Inflation Rate for Each Region",
+             "Inflation, consumer prices (annual %)")
