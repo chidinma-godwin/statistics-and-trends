@@ -40,7 +40,7 @@ def clean_data(data):
                .split(" [")[0] for col_name in list(cleaned_data.columns)]
     cleaned_data.columns = columns
 
-    cleaned_data.replace('..', np.nan, inplace=True)
+    cleaned_data.replace("..", np.nan, inplace=True)
 
     # Set the region and series name as index, leaving years as the columns
     cleaned_data = cleaned_data.set_index(
@@ -54,7 +54,7 @@ def clean_data(data):
 
     # Rename index like "Sample (current US$)" to "Sample (US$)"
     cleaned_data.rename(lambda x: x.replace(
-        "current ", ""), axis='index', inplace=True)
+        "current ", ""), axis="index", inplace=True)
 
     # Ensure that the values are currently represented as floats
     cleaned_data = cleaned_data.astype("float64")
@@ -95,7 +95,7 @@ def get_dataframes(filename):
                                axis=1, level="Series Name")
     net_exports = exports - imports
     net_exports.columns = pd.MultiIndex.from_product(
-        [net_exports.columns, ['Net exports (US$)']],
+        [net_exports.columns, ["Net exports (US$)"]],
         names=["Region", "Series Name"])
 
     # Add the new Net exports column to the transposed dataframe and
@@ -155,25 +155,25 @@ def extract_statistics(description_df, skew_kurtosis_df):
     # highlight the min and max mean of each indicators, and add background
     # color to the colum and row headers
     summary_stats_df = summary_stats_df.style.format("{:,.2f}") \
-        .set_properties(**{'border': '1px solid black'}) \
+        .set_properties(**{"border": "1px solid black"}) \
         .set_caption("Summary Statistics of Indicators Over the Years") \
-        .highlight_max(color='lightgreen', subset=idx[:, idx[:, "mean"]]) \
-        .highlight_min(color='cyan', subset=idx[:, idx[:, "mean"]]) \
+        .highlight_max(color="lightgreen", subset=idx[:, idx[:, "mean"]]) \
+        .highlight_min(color="cyan", subset=idx[:, idx[:, "mean"]]) \
         .apply_index(lambda v: header_styles * len(v)) \
         .apply_index(lambda v: header_styles * len(v), axis="columns") \
         .set_table_styles([
-            {'selector': 'caption',
-             'props': [
-                 ('font-size', '20px'),
-                 ('font-weight', 'bold'),
-                 ('padding-bottom', '20px'),
+            {"selector": "caption",
+             "props": [
+                 ("font-size", "20px"),
+                 ("font-weight", "bold"),
+                 ("padding-bottom", "20px"),
              ]
              }
         ])
 
     # Save the extracted statistics to an excel file
     summary_stats_df.to_excel(
-        'plots/summary_statistics.xlsx', engine='openpyxl')
+        "plots/summary_statistics.xlsx", engine="openpyxl")
 
     return
 
@@ -222,7 +222,7 @@ def plot_boxplot(df, title, ylabel):
               loc="lower center", ncol=1, fontsize=12)
     ax.legend_.set_bbox_to_anchor([0.8, 0.75])
 
-    plt.savefig("plots/box_plot.svg", bbox_inches='tight')
+    plt.savefig("plots/box_plot.svg", bbox_inches="tight")
 
     plt.show()
 
@@ -251,14 +251,14 @@ def plot_heatmap(corr, region_name):
     im = ax.imshow(corr, interpolation="nearest")
 
     # Add a colorbar to the plot
-    fig.colorbar(im, orientation='vertical', fraction=0.045)
+    fig.colorbar(im, orientation="vertical", fraction=0.045)
 
     columns_length = len(corr.columns)
 
     # Set the plot title
     ax.set_title(
         f"Correlation of Indicators for {region_name}",
-        fontweight="bold", fontsize=20, y=1.03)
+        fontweight="bold", fontsize=30, y=1.03)
 
     # Show all ticks and label them with the column name
     ax.set_xticks(np.arange(columns_length), labels=corr.columns, fontsize=15)
@@ -280,7 +280,7 @@ def plot_heatmap(corr, region_name):
             ax.text(j, i, corr.to_numpy()[i, j], ha="center", va="center",
                     color=color, fontsize=20, fontweight="bold")
 
-    plt.savefig(f"plots/{region_name} heatmap.png", bbox_inches='tight')
+    plt.savefig(f"plots/{region_name} heatmap.png", bbox_inches="tight")
 
     plt.show()
 
@@ -308,7 +308,7 @@ def plot_line_graphs(df, columns, title, xlabel):
 
     """
 
-    fig, axes = plt.subplots(2, 3, figsize=(20, 12), layout='constrained')
+    fig, axes = plt.subplots(2, 3, figsize=(20, 12), layout="constrained")
 
     fig.suptitle(title, fontsize=30, fontweight="bold", y=1.10)
 
@@ -338,10 +338,10 @@ def plot_line_graphs(df, columns, title, xlabel):
 
     # Display one legend for all the subplots
     handles, labels = fig.axes[0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc='upper center', ncols=3, fontsize=18,
+    fig.legend(handles, labels, loc="upper center", ncols=3, fontsize=18,
                bbox_to_anchor=[0.5, 1.07])
 
-    plt.savefig("plots/line_plot.png", bbox_inches='tight')
+    plt.savefig("plots/line_plot.png", bbox_inches="tight")
 
     plt.show()
 
